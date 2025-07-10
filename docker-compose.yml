@@ -1,37 +1,74 @@
 version: '3.8'
 
 services:
-  kafka:
-    image: bitnami/kafka:latest
-    container_name: kafka
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
     environment:
-      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
-      - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_NODE_ID=1
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_INTERNAL://:29092,CONTROLLER://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL
+      - ALLOW_ANONYMOUS_LOGIN=yes
     ports:
-      - "9092:9092"     # 給 IntelliJ 用
-      - "29092:29092"   # 給 container 用（如 Kafdrop）
+      - "2181:2181"
     networks:
       - kafka-net
 
-  kafdrop:
-    image: obsidiandynamics/kafdrop
-    container_name: kafdrop
-    restart: "no"
-    ports:
-      - "9000:9000"     # GUI 介面 http://localhost:9000
+  kafka:
+    image: bitnami/kafka:3.5.1
+    container_name: kafka
     environment:
-      - KAFKA_BROKER_CONNECT=kafka:29092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_INTERNAL://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://kafka:29092
+#      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://host.docker.internal:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    networks:
+      - kafka-net
+#  不一定要開 kafka drop 如果你只需要簡單查看 topic 和訊息 → 用 Kafdrop 就夠了
+#  kafdrop:
+#    image: obsidiandynamics/kafdrop
+#    container_name: kafdrop
+#    restart: "no"
+#    ports:
+#      - "9000:9000"
+#    environment:
+#      - KAFKA_BROKER_CONNECT=kafka:29092
+#    depends_on:
+#      - kafka
+#    networks:
+#      - kafka-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8081:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+    depends_on:
+      - kafka
+      - zookeeper
+    networks:
+      - kafka-net
+  spring-app:
+    build:
+      context: .
+    container_name: spring-app
     depends_on:
       - kafka
     networks:
       - kafka-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+    ports:
+      - "8080:8080"  # 根據你的 Spring Boot port
 
 networks:
   kafka-net:
