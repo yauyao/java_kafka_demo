@@ -1,23 +1,14 @@
 # java_kafka_demo
 
-✅ 使用方式 v1.0
-1. 將這份內容儲存為 docker-compose.yml
-2. 在該目錄下執行：
+✅ 使用方式 v3.0
+1. 在該目錄下執行：
 ```
-    docker-compose up -d
+    sh docker-start.sh
 ```
-
-3. 在 IntelliJ 的 application.properties 或 application.yml 中設定：
+2. 開啟瀏覽器進入 http://localhost:8081 查看 KakfaUI
+3. 利用API工具 POST http://localhost:8080/publish
 ```
-spring.kafka.bootstrap-servers=localhost:9092
-```
-4. 開啟瀏覽器進入 http://localhost:9000 查看 Kafdrop GUI
-
-✅ 使用方式 v2.0
-1. 將這份內容儲存為 docker-compose.yml
-2. 已修改為全用docker執行
-2. 在該目錄下執行：
-```
-    docker-compose down -v
-    docker-compose up -d
+    {
+        "message":"需要推播的文案"
+    }
 ```
